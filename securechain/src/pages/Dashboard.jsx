@@ -98,47 +98,46 @@ function Dashboard() {
     navigate('/login');
   };
 
-  const renderMenu = () => (
-    <div className="flex flex-col h-full">
-      {!isMobile && (
-        <div className={`py-4 px-4 flex items-center ${collapsed ? 'justify-center' : 'justify-start'} border-b border-gray-100`}>
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">S</span>
-            </div>
-            {!collapsed && (
-              <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                SecureChain
-              </h1>
-            )}
-          </div>
+  const Logo = () => (
+    <div className="py-6 px-6 flex items-center justify-start">
+      <div className="flex items-center gap-3">
+        <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+          <span className="text-white font-bold text-lg">S</span>
         </div>
-      )}
+        <h1 className="text-xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+          SecureChain
+        </h1>
+      </div>
+    </div>
+  );
+
+  const renderMenu = () => (
+    <div className="flex flex-col h-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.12)] border border-gray-100">
+      {!isMobile && <Logo />}
       <Menu
         mode="inline"
         selectedKeys={[selectedMenu]}
-        className="border-r-0 py-4"
         items={menuItems}
         onClick={handleMenuClick}
+        className="border-r-0 py-4"
       />
+
       <div className="mt-auto border-t border-gray-100">
-        <div className={`p-4 flex items-center gap-3 ${collapsed ? 'justify-center' : 'px-6'}`}>
+        <div className="p-4 flex items-center gap-3 px-6">
           <Avatar 
             size={40}
             className="bg-gradient-to-r from-blue-500 to-purple-500 flex-shrink-0"
           >
             {user.username[0].toUpperCase()}
           </Avatar>
-          {!collapsed && (
-            <div className="overflow-hidden">
-              <div className="font-medium truncate">{user.username}</div>
-              <div className="text-sm text-gray-500 truncate">{user.email}</div>
-            </div>
-          )}
+          <div className="overflow-hidden">
+            <div className="font-medium truncate">{user.username}</div>
+            <div className="text-sm text-gray-500 truncate">{user.email}</div>
+          </div>
         </div>
         <Menu
           mode="inline"
-          className="border-r-0"
+          className="border-r-0 rounded-b-3xl overflow-hidden"
           items={[
             {
               key: 'logout',
@@ -155,23 +154,7 @@ function Dashboard() {
 
   const mobileNav = (
     <Drawer
-      title={
-        <div className="flex items-center justify-between w-full">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
-              <span className="text-white font-bold text-lg">S</span>
-            </div>
-            <span className="font-bold text-lg">SecureChain</span>
-          </div>
-          <Button 
-            type="text"
-            className="hover:bg-gray-50 border-none"
-            onClick={() => setMobileDrawerOpen(false)}
-            icon={<X size={20} />}
-          />
-        </div>
-      }
-      closeIcon={null}
+      title={<Logo />}
       placement="left"
       onClose={() => setMobileDrawerOpen(false)}
       open={mobileDrawerOpen}
@@ -179,8 +162,9 @@ function Dashboard() {
       bodyStyle={{ padding: 0 }}
       headerStyle={{ 
         borderBottom: '1px solid #f0f0f0',
-        padding: '12px 16px'
+        padding: '0'
       }}
+      closeIcon={null}
     >
       {renderMenu()}
     </Drawer>
@@ -275,22 +259,14 @@ function Dashboard() {
   };
 
   return (
-    <Layout style={{ minHeight: '100vh' }} className="bg-gray-50">
+    <div className="min-h-screen flex bg-gray-50">
       {!isMobile && (
-        <Sider
-          collapsible
-          collapsed={collapsed}
-          onCollapse={(value) => setCollapsed(value)}
-          theme="light"
-          className="hidden md:block shadow-lg"
-          width={280}
-          collapsedWidth={80}
-        >
+        <div className="fixed left-0 top-0 bottom-0 w-[280px] p-6">
           {renderMenu()}
-        </Sider>
+        </div>
       )}
 
-      <Layout>
+      <div className={`flex-1 ${!isMobile ? 'ml-[280px]' : ''} p-6 h-screen`}>
         {isMobile && (
           <Button
             type="text"
@@ -300,22 +276,17 @@ function Dashboard() {
           />
         )}
 
-        <Content 
-          style={{ 
-            margin: isMobile ? '16px 8px' : '24px 16px',
-            padding: isMobile ? 16 : 24,
-            background: colorBgContainer,
-            borderRadius: borderRadiusLG,
-            minHeight: 280
-          }}
-          className="overflow-auto shadow-sm border-2 border-black"
+        <div 
+          className="h-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-auto"
         >
-          {renderContent()}
-        </Content>
-      </Layout>
+          <div className="p-6">
+            {renderContent()}
+          </div>
+        </div>
+      </div>
 
       {isMobile && mobileNav}
-    </Layout>
+    </div>
   );
 }
 

@@ -2,71 +2,12 @@
 import React, { useState, useCallback } from "react";
 import { recordFileOnBlockchain } from "../lib/blockchain";
 import { FileUpload } from "./ui/file-upload";
-import { Check, Copy, Loader2, Upload } from "lucide-react";
-import axios from "axios";
-import toast from 'react-hot-toast';
+import { Check, Copy, Loader2, Upload, X } from "lucide-react";
+import axios from 'axios';
 import crypto from 'crypto-js';
 import { useAuth } from "../context/AuthContext";
 import { Modal } from "antd";
 import { ethers } from "ethers";
-
-const Toast = ({ title, message, type = 'success' }) => (
-  <div className="flex items-start space-x-4 bg-white shadow-lg rounded-lg p-4 max-w-md">
-    <div className={`flex-shrink-0 ${type === 'success' ? 'text-green-500' : 'text-red-500'}`}>
-      {type === 'success' ? (
-        <Check className="h-6 w-6" />
-      ) : (
-        <X className="h-6 w-6" />
-      )}
-    </div>
-    <div className="flex-1 pt-0.5">
-      <p className="text-sm font-medium text-gray-900">{title}</p>
-      <p className="mt-1 text-sm text-gray-500">{message}</p>
-    </div>
-  </div>
-);
-
-const UploadButton = ({ onClick, disabled, uploading, uploadProgress, className }) => {
-  return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      className={`
-        relative overflow-hidden
-        w-full flex items-center justify-center
-        px-4 py-3 rounded-lg
-        text-sm font-medium text-white
-        bg-gradient-to-r from-blue-500 to-purple-500
-        hover:opacity-90
-        focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
-        disabled:opacity-50 disabled:cursor-not-allowed
-        transform transition-all duration-200 ease-in-out
-        hover:scale-[1.02] active:scale-[0.98]
-        ${className}
-      `}
-    >
-      {uploading ? (
-        <>
-          <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500">
-            <div
-              className="h-full bg-white/20 transition-all duration-300 ease-in-out"
-              style={{ width: `${uploadProgress}%` }}
-            />
-          </div>
-          <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5 relative z-10" />
-          <span className="relative z-10 font-semibold">
-            {uploadProgress < 100 ? `Uploading (${uploadProgress}%)` : 'Encrypting...'}
-          </span>
-        </>
-      ) : (
-        <>
-          <Upload className="-ml-1 mr-2 h-5 w-5" />
-          <span className="font-semibold">Upload File</span>
-        </>
-      )}
-    </button>
-  );
-};
 
 export function FileUploadDemo() {
   const { user } = useAuth();
@@ -76,8 +17,13 @@ export function FileUploadDemo() {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [showKeyModal, setShowKeyModal] = useState(false);
+  const [showTxModal, setShowTxModal] = useState(false);
   const [aesKey, setAesKey] = useState('');
   const [keyCopied, setKeyCopied] = useState(false);
+  const [txHash, setTxHash] = useState('');
+  const [txCopied, setTxCopied] = useState(false);
+  const [errorModalVisible, setErrorModalVisible] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   const handleFileChange = useCallback((files) => {
     if (files && files.length > 0) {
@@ -87,13 +33,8 @@ export function FileUploadDemo() {
 
   const handleUpload = async () => {
     if (!selectedFile || !recipient || !unlockTime) {
-      toast.custom((t) => (
-        <Toast
-          title="Missing Information"
-          message="Please fill in all required fields"
-          type="error"
-        />
-      ));
+      setErrorMessage("Please fill in all required fields");
+      setErrorModalVisible(true);
       return;
     }
 
@@ -123,15 +64,6 @@ export function FileUploadDemo() {
         }
       });
 
-      // Show success message and AES key
-      toast.custom((t) => (
-        <Toast
-          title="Success"
-          message="File uploaded successfully"
-          type="success"
-        />
-      ));
-
       // Store AES key and show modal
       setAesKey(aesKey);
       setShowKeyModal(true);
@@ -148,13 +80,11 @@ export function FileUploadDemo() {
       });
 
       if (!blockchainResult.success) {
-        toast.custom(() => (
-          <Toast title="Blockchain Error" message={blockchainResult.error} type="error" />
-        ));
+        setErrorMessage(blockchainResult.error);
+        setErrorModalVisible(true);
       } else {
-        toast.custom(() => (
-          <Toast title="Blockchain Tx Success" message={`Tx Hash: ${blockchainResult.txHash}`} />
-        ));
+        setTxHash(blockchainResult.txHash);
+        setShowTxModal(true);
       }
 
       // Reset form
@@ -165,13 +95,8 @@ export function FileUploadDemo() {
 
     } catch (error) {
       console.error('Upload error:', error);
-      toast.custom((t) => (
-        <Toast
-          title="Upload Failed"
-          message={error.response?.data?.message || "Failed to upload file"}
-          type="error"
-        />
-      ));
+      setErrorMessage(error.response?.data?.message || "Failed to upload file");
+      setErrorModalVisible(true);
     } finally {
       setUploading(false);
     }
@@ -181,6 +106,12 @@ export function FileUploadDemo() {
     navigator.clipboard.writeText(aesKey);
     setKeyCopied(true);
     setTimeout(() => setKeyCopied(false), 2000);
+  };
+
+  const handleCopyTx = () => {
+    navigator.clipboard.writeText(txHash);
+    setTxCopied(true);
+    setTimeout(() => setTxCopied(false), 2000);
   };
 
   return (
@@ -219,27 +150,62 @@ export function FileUploadDemo() {
           </div>
         </div>
       </div>
-      <UploadButton
+      <button
         onClick={handleUpload}
         disabled={!selectedFile || !recipient || !unlockTime || uploading}
-        uploading={uploading}
-        uploadProgress={uploadProgress}
-      />
+        className={`
+          relative overflow-hidden
+          w-full flex items-center justify-center
+          px-4 py-3 rounded-lg
+          text-sm font-medium text-white
+          bg-gradient-to-r from-blue-500 to-purple-500
+          hover:opacity-90
+          focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500
+          disabled:opacity-50 disabled:cursor-not-allowed
+          transform transition-all duration-200 ease-in-out
+          hover:scale-[1.02] active:scale-[0.98]
+        `}
+      >
+        {uploading ? (
+          <>
+            <div className="absolute inset-0 bg-gradient-to-r from-blue-500 to-purple-500">
+              <div
+                className="h-full bg-white/20 transition-all duration-300 ease-in-out"
+                style={{ width: `${uploadProgress}%` }}
+              />
+            </div>
+            <Loader2 className="animate-spin -ml-1 mr-2 h-5 w-5 relative z-10" />
+            <span className="relative z-10 font-semibold">
+              {uploadProgress < 100 ? `Uploading (${uploadProgress}%)` : 'Encrypting...'}
+            </span>
+          </>
+        ) : (
+          <>
+            <Upload className="-ml-1 mr-2 h-5 w-5" />
+            <span className="font-semibold">Upload File</span>
+          </>
+        )}
+      </button>
 
-      {/* AES Key Modal */}
+      {/* Success Modal with AES Key */}
       <Modal
-        title="File Uploaded Successfully"
+        title={
+          <div className="flex items-center space-x-2 text-green-600">
+            <Check className="h-5 w-5" />
+            <span>File Uploaded Successfully</span>
+          </div>
+        }
         open={showKeyModal}
         onOk={() => setShowKeyModal(false)}
         onCancel={() => setShowKeyModal(false)}
-        okText="Close"
+        okText="Continue"
         cancelButtonProps={{ style: { display: 'none' } }}
       >
-        <div className="space-y-4">
+        <div className="space-y-4 mt-4">
           <p className="text-gray-600">
             Please save this decryption key and share it with the recipient. They will need it to access the file.
           </p>
-          <div className="flex items-center space-x-2 bg-gray-100 p-3 rounded-lg">
+          <div className="flex items-center space-x-2 bg-gray-50 p-4 rounded-lg">
             <code className="flex-1 font-mono text-sm break-all">{aesKey}</code>
             <button
               onClick={handleCopyKey}
@@ -253,6 +219,60 @@ export function FileUploadDemo() {
               )}
             </button>
           </div>
+        </div>
+      </Modal>
+
+      {/* Transaction Hash Modal */}
+      <Modal
+        title={
+          <div className="flex items-center space-x-2 text-blue-600">
+            <Check className="h-5 w-5" />
+            <span>Blockchain Transaction Successful</span>
+          </div>
+        }
+        open={showTxModal}
+        onOk={() => setShowTxModal(false)}
+        onCancel={() => setShowTxModal(false)}
+        okText="Close"
+        cancelButtonProps={{ style: { display: 'none' } }}
+      >
+        <div className="space-y-4 mt-4">
+          <p className="text-gray-600">
+            Your file has been successfully recorded on the blockchain. You can use this transaction hash to track your file.
+          </p>
+          <div className="flex items-center space-x-2 bg-gray-50 p-4 rounded-lg">
+            <code className="flex-1 font-mono text-sm break-all">{txHash}</code>
+            <button
+              onClick={handleCopyTx}
+              className="p-2 hover:bg-gray-200 rounded-md transition-colors"
+              title="Copy to clipboard"
+            >
+              {txCopied ? (
+                <Check className="h-5 w-5 text-green-500" />
+              ) : (
+                <Copy className="h-5 w-5 text-gray-500" />
+              )}
+            </button>
+          </div>
+        </div>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal
+        title={
+          <div className="flex items-center space-x-2 text-red-600">
+            <X className="h-5 w-5" />
+            <span>Error</span>
+          </div>
+        }
+        open={errorModalVisible}
+        onOk={() => setErrorModalVisible(false)}
+        onCancel={() => setErrorModalVisible(false)}
+        okText="Close"
+        cancelButtonProps={{ style: { display: 'none' } }}
+      >
+        <div className="mt-4">
+          <p className="text-gray-600">{errorMessage}</p>
         </div>
       </Modal>
     </div>
