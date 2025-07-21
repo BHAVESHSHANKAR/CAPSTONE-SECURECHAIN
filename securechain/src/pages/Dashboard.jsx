@@ -13,7 +13,8 @@ import {
   LayoutDashboard,
   LogOut,
   Menu as MenuIcon,
-  X
+  X,
+  Search
 } from 'lucide-react';
 import StatsCard from '../components/Statscard';
 import { ChatWithAI } from '../components/ChatWithAi';
@@ -21,6 +22,7 @@ import Wallet from '../components/Wallet';
 import Received from '../components/Received';
 import History from '../components/History';
 import { FileUploadDemo } from '../components/FileUploadDemo';
+import { TransactionChecker } from '../components/TransactionChecker';
 
 const { Content, Sider } = Layout;
 
@@ -48,9 +50,14 @@ function Dashboard() {
 
   const menuItems = [
     {
+      key: 'dashboard',
+      icon: <LayoutDashboard size={20} />,
+      label: 'Dashboard'
+    },
+    {
       key: 'share',
       icon: <Share2 size={20} />,
-      label: 'Share',
+      label: 'Share'
     },
     {
       key: 'received',
@@ -73,9 +80,9 @@ function Dashboard() {
       label: 'Chat With AI'
     },
     {
-      key: 'dashboard',
-      icon: <LayoutDashboard size={20} />,
-      label: 'Dashboard'
+      key: 'check-tx',
+      icon: <Search size={20} />,
+      label: 'Check Your Tx'
     }
   ];
 
@@ -241,6 +248,17 @@ function Dashboard() {
           <div className="p-6">
             <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
               <History />
+            </div>
+          </div>
+        );
+      case 'check-tx':
+        return (
+          <div className="p-6">
+            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
+              <div className="bg-white rounded-xl p-6">
+                <h2 className="text-xl font-semibold mb-6">Check Transaction Status</h2>
+                <TransactionChecker />
+              </div>
             </div>
           </div>
         );
