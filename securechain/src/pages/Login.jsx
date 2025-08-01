@@ -2,9 +2,10 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Form, Input, Button, message, Modal } from 'antd';
-import { MailOutlined, LockOutlined, StarFilled, SafetyOutlined, EyeInvisibleOutlined, EyeTwoTone, RightOutlined, CheckCircleOutlined, InfoCircleOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
+import { MailOutlined, LockOutlined, StarFilled, SafetyOutlined, EyeInvisibleOutlined, EyeTwoTone, RightOutlined, CheckCircleOutlined, InfoCircleOutlined, UpOutlined, DownOutlined, ExclamationCircleOutlined, WarningOutlined } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
+import { defaultGuest } from '../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -68,58 +69,163 @@ const Login = () => {
     setCurrentStep(currentStep - 1);
   };
 
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorDetails, setErrorDetails] = useState({ title: '', message: '' });
+
   const handleSubmit = async () => {
     try {
       setLoading(true);
 
-      // Validate all fields
-      await form.validateFields();
+      // Show loading message
+      const loadingMessage = message.loading({
+        content: 'Signing in...',
+        duration: 0,
+        style: {
+          marginTop: '20vh',
+        },
+      });
 
-      // Get form values
-      const formValues = form.getFieldsValue();
+      try {
+        // Validate all fields
+        await form.validateFields();
 
-      // Prepare data for submission
-      const submitData = {
-        email: formValues.email?.trim(),
-        password: formValues.password,
-      };
+        // Get form values
+        const formValues = form.getFieldsValue();
 
-      console.log('Submitting login data:', submitData); // Debug log
+        // Prepare data for submission
+        const submitData = {
+          email: formValues.email?.trim(),
+          password: formValues.password,
+        };
 
-      // Make API call to login endpoint
-      const response = await axios.post('http://localhost:5050/api/auth/login', submitData);
+        // Make API call to login endpoint
+        const response = await axios.post('http://localhost:5050/api/auth/login', submitData);
 
-      if (response.data) {
-        const { token, user } = response.data;
+        if (response.data) {
+          const { token, user } = response.data;
 
-        // Store token
-        localStorage.setItem('token', token);
+          // Clear loading message
+          loadingMessage();
 
-        // Update user context
-        setUser({ ...user, isGuest: false });
+          // Show success message
+          message.success({
+            content: 'Successfully signed in!',
+            duration: 3,
+            style: {
+              marginTop: '20vh',
+            },
+          });
 
-        setShowSuccessModal(true);
+          // Store token
+          localStorage.setItem('token', token);
+
+          // Update user context with isGuest flag
+          const updatedUser = { ...user, isGuest: false };
+          setUser(updatedUser);
+
+          setShowSuccessModal(true);
+        }
+      } catch (error) {
+        // Clear loading message
+        loadingMessage();
+
+        let errorTitle = 'Login Failed';
+        let errorMessage = 'An unexpected error occurred. Please try again.';
+
+        // Handle different error types
+        if (error.response?.data) {
+          const { message: serverMessage, type } = error.response.data;
+
+          switch (type) {
+            case 'VALIDATION_ERROR':
+              errorTitle = 'Invalid Input';
+              errorMessage = serverMessage;
+              break;
+            case 'AUTH_ERROR':
+              errorTitle = 'Authentication Failed';
+              errorMessage = serverMessage;
+              break;
+            case 'DEVICE_RESTRICTION':
+              errorTitle = 'Security Restriction';
+              errorMessage = serverMessage;
+              // Clear any stored auth data for security
+              localStorage.removeItem('token');
+              setUser(defaultGuest); // Use the default guest user
+              setShowDeviceWarningModal(true);
+              return; // Exit early to show device warning instead
+            case 'SERVER_ERROR':
+              errorTitle = 'Server Error';
+              errorMessage = 'An error occurred on our servers. Please try again later.';
+              break;
+            default:
+              if (serverMessage) {
+                errorMessage = serverMessage;
+              }
+          }
+        } else if (error.response?.status === 403) {
+          errorTitle = 'Access Denied';
+          errorMessage = 'This device is not authorized to access the dashboard for security reasons.';
+          localStorage.removeItem('token');
+          setUser(defaultGuest);
+          setShowDeviceWarningModal(true);
+          return;
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        // Set error details and show modal
+        setErrorDetails({
+          title: errorTitle,
+          message: errorMessage
+        });
+        setShowErrorModal(true);
+
+        console.error('Login error:', error);
       }
-    } catch (error) {
-      let errorMessage = 'Login failed. Please try again.';
-
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      message.error(errorMessage);
-      console.error('Login error:', error);
+    } catch (validationError) {
+      // Show validation error in modal
+      setErrorDetails({
+        title: 'Form Validation Error',
+        message: 'Please check your input and try again. Make sure all required fields are filled correctly.'
+      });
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
   };
 
+  const [showDeviceWarningModal, setShowDeviceWarningModal] = useState(false);
+
   const handleSuccessModalClose = () => {
     setShowSuccessModal(false);
     navigate('/dashboard');
   };
+
+  // Handle device restriction response
+  useEffect(() => {
+    const handleDeviceRestriction = (error) => {
+      if (error?.response?.data?.type === 'DEVICE_RESTRICTION') {
+        setShowDeviceWarningModal(true);
+        // Clear any stored auth data
+        localStorage.removeItem('token');
+        setUser(null);
+      }
+    };
+
+    // Add axios response interceptor
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        handleDeviceRestriction(error);
+        return Promise.reject(error);
+      }
+    );
+
+    return () => {
+      // Remove interceptor on cleanup
+      axios.interceptors.response.eject(interceptor);
+    };
+  }, [setUser]);
 
   const handleStepAction = async () => {
     if (currentStep === steps.length - 1) {
@@ -187,8 +293,14 @@ const Login = () => {
               <Form
                 form={form}
                 layout="vertical"
-                onFinish={handleSubmit}
+                onFinish={(e) => e.preventDefault()}
                 className="space-y-4"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleStepAction();
+                  }
+                }}
               >
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -535,6 +647,101 @@ const Login = () => {
           >
             Go to Dashboard
           </Button>
+        </div>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal
+        open={showErrorModal}
+        onCancel={() => setShowErrorModal(false)}
+        footer={[
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => setShowErrorModal(false)}
+            className="w-full h-12 rounded-lg bg-blue-600 hover:bg-blue-700 border-0 font-semibold"
+          >
+            Try Again
+          </Button>
+        ]}
+        centered
+        width={400}
+        className="error-modal"
+      >
+        <div className="text-center py-6">
+          <div className="mb-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <ExclamationCircleOutlined className="text-4xl text-red-500" />
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            {errorDetails.title}
+          </h3>
+          <p className="text-gray-600 mb-6">
+            {errorDetails.message}
+          </p>
+        </div>
+      </Modal>
+
+      {/* Device Warning Modal */}
+      <Modal
+        open={showDeviceWarningModal}
+        onCancel={() => {
+          setShowDeviceWarningModal(false);
+          navigate('/');
+        }}
+        footer={[
+          <Button
+            key="back"
+            type="primary"
+            onClick={() => {
+              setShowDeviceWarningModal(false);
+              navigate('/');
+            }}
+            className="w-full h-12 rounded-lg bg-blue-600 hover:bg-blue-700 border-0 font-semibold"
+          >
+            Return to Home
+          </Button>
+        ]}
+        centered
+        width={400}
+        className="device-warning-modal"
+      >
+        <div className="text-center py-6">
+          <div className="mb-4">
+            <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center mx-auto">
+              <WarningOutlined className="text-4xl text-yellow-500" />
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            Security Restriction
+          </h3>
+          <p className="text-gray-600 mb-6">
+            For enhanced security and data protection, the SecureChain dashboard is only accessible from desktop or laptop computers. Mobile devices and tablets are not supported due to security protocols.
+          </p>
+          <div className="text-sm text-gray-500 mb-4">
+            <p className="font-medium mb-3">Why this restriction?</p>
+            <ul className="list-none space-y-2">
+              <li>🔒 Enhanced Security Controls</li>
+              <li>🛡️ Advanced Encryption Features</li>
+              <li>⚡ Secure File Processing</li>
+              <li>🔐 Hardware Security Requirements</li>
+            </ul>
+            <div className="mt-4">
+              <p className="font-medium mb-2">Device Support:</p>
+              <div className="space-y-1">
+                <p className="text-green-600">✓ Desktop Computers</p>
+                <p className="text-green-600">✓ Laptop Computers</p>
+                <p className="text-red-500 mt-2">✗ Mobile Phones</p>
+                <p className="text-red-500">✗ Tablets</p>
+              </div>
+            </div>
+          </div>
+          <div className="bg-blue-50 p-3 rounded-lg mt-4">
+            <p className="text-sm text-blue-800">
+              <strong>Security Note:</strong> For the safety of your blockchain assets and encrypted files, please access your account from a desktop or laptop computer.
+            </p>
+          </div>
         </div>
       </Modal>
     </div>

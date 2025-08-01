@@ -1,7 +1,7 @@
 import { cn } from "../../lib/utils";
 import React, { useRef, useState, forwardRef, useImperativeHandle } from "react";
 import { motion } from "framer-motion";
-import { IconUpload, IconLoader2 } from "@tabler/icons-react";
+import { IconUpload, IconLoader2, IconX } from "@tabler/icons-react";
 import { useDropzone } from "react-dropzone";
 
 function GridPattern() {
@@ -71,6 +71,16 @@ const FileUpload = forwardRef(({
     onChange && onChange(newFiles);
   };
 
+  const handleRemoveFile = (idx) => {
+    if (disabled) return;
+    const newFiles = files.filter((_, i) => i !== idx);
+    setFiles(newFiles);
+    onChange && onChange([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
   const handleClick = () => {
     if (disabled) return;
     fileInputRef.current?.click();
@@ -133,13 +143,25 @@ const FileUpload = forwardRef(({
                       className="text-base text-neutral-700 dark:text-neutral-300 truncate max-w-xs">
                       {file.name}
                     </motion.p>
-                    <motion.p
-                      initial={{ opacity: 0 }}
-                      animate={{ opacity: 1 }}
-                      layout
-                      className="rounded-lg px-2 py-1 w-fit shrink-0 text-sm text-neutral-600 dark:bg-neutral-800 dark:text-white shadow-input">
-                      {(file.size / (1024 * 1024)).toFixed(2)} MB
-                    </motion.p>
+                    <div className="flex items-center gap-3">
+                      <motion.p
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        layout
+                        className="rounded-lg px-2 py-1 w-fit shrink-0 text-sm text-neutral-600 dark:bg-neutral-800 dark:text-white shadow-input">
+                        {(file.size / (1024 * 1024)).toFixed(2)} MB
+                      </motion.p>
+                      <motion.button
+                        initial={{ opacity: 0 }}
+                        animate={{ opacity: 1 }}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleRemoveFile(idx);
+                        }}
+                        className="p-1 hover:bg-gray-100 rounded-full transition-colors">
+                        <IconX className="h-5 w-5 text-gray-500 hover:text-gray-700" />
+                      </motion.button>
+                    </div>
                   </div>
 
                   <div

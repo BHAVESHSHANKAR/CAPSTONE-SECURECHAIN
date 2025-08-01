@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import { Form, Input, Button, message, Modal } from 'antd';
-import { UserOutlined, MailOutlined, LockOutlined, WalletOutlined, StarFilled, SafetyOutlined, EyeInvisibleOutlined, EyeTwoTone, RightOutlined, CheckCircleOutlined, InfoCircleOutlined, UpOutlined, DownOutlined } from '@ant-design/icons';
+import { UserOutlined, MailOutlined, LockOutlined, WalletOutlined, StarFilled, SafetyOutlined, EyeInvisibleOutlined, EyeTwoTone, RightOutlined, CheckCircleOutlined, InfoCircleOutlined, UpOutlined, DownOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
 import { motion, AnimatePresence } from 'framer-motion';
 
 const Register = () => {
@@ -59,43 +59,134 @@ const Register = () => {
     setCurrentStep(currentStep - 1);
   };
 
+  const [showErrorModal, setShowErrorModal] = useState(false);
+  const [errorDetails, setErrorDetails] = useState({ title: '', message: '' });
+
   const handleSubmit = async () => {
     try {
       setLoading(true);
 
-      // First validate all fields at once
-      await form.validateFields();
+      // Show loading message
+      const loadingMessage = message.loading({
+        content: 'Creating your account...',
+        duration: 0,
+        style: {
+          marginTop: '20vh',
+        },
+      });
 
-      // Get all form values
-      const formValues = form.getFieldsValue();
+      try {
+        // First validate all fields at once
+        await form.validateFields();
 
-      // Prepare the data for submission
-      const submitData = {
-        username: formValues.username?.trim(),
-        email: formValues.email?.trim(),
-        password: formValues.password,
-        walletAddress: formValues.walletAddress?.trim()
-      };
+        // Get all form values
+        const formValues = form.getFieldsValue();
 
-      console.log('Submitting data:', submitData); // Debug log
+        // Prepare the data for submission
+        const submitData = {
+          username: formValues.username?.trim(),
+          email: formValues.email?.trim(),
+          password: formValues.password,
+          walletAddress: formValues.walletAddress?.trim()
+        };
 
-      // Make the API call
-      const response = await axios.post('http://localhost:5050/api/auth/register', submitData);
+        // Make the API call
+        const response = await axios.post('http://localhost:5050/api/auth/register', submitData);
 
-      if (response.data) {
-        setShowSuccessModal(true);
+        if (response.data) {
+          // Clear loading message
+          loadingMessage();
+
+          // Show success message
+          message.success({
+            content: 'Account created successfully!',
+            duration: 3,
+            style: {
+              marginTop: '20vh',
+            },
+          });
+
+          setShowSuccessModal(true);
+        }
+      } catch (error) {
+        // Clear loading message
+        loadingMessage();
+
+        let errorTitle = 'Registration Failed';
+        let errorMessage = 'An unexpected error occurred. Please try again.';
+
+        if (error.response?.data) {
+          const { message: serverMessage, type, field, details } = error.response.data;
+
+          switch (type) {
+            case 'VALIDATION_ERROR':
+              errorTitle = 'Invalid Input';
+              errorMessage = serverMessage;
+              
+              // If there are field-specific validation errors
+              if (details) {
+                const errors = Object.entries(details)
+                  .filter(([_, msg]) => msg !== null)
+                  .map(([field, msg]) => msg);
+                errorMessage = errors.join('\\n');
+              }
+
+              // Highlight the specific field if provided
+              if (field) {
+                form.setFields([
+                  {
+                    name: field,
+                    errors: [serverMessage]
+                  }
+                ]);
+              }
+              break;
+
+            case 'DUPLICATE_ERROR':
+              errorTitle = 'Account Already Exists';
+              errorMessage = serverMessage;
+              
+              // Highlight the duplicate field
+              if (field) {
+                form.setFields([
+                  {
+                    name: field,
+                    errors: [serverMessage]
+                  }
+                ]);
+              }
+              break;
+
+            case 'SERVER_ERROR':
+              errorTitle = 'Server Error';
+              errorMessage = 'An error occurred on our servers. Please try again later.';
+              break;
+
+            default:
+              if (serverMessage) {
+                errorMessage = serverMessage;
+              }
+          }
+        } else if (error.message) {
+          errorMessage = error.message;
+        }
+
+        // Set error details and show modal
+        setErrorDetails({
+          title: errorTitle,
+          message: errorMessage
+        });
+        setShowErrorModal(true);
+
+        console.error('Registration error:', error);
       }
-    } catch (error) {
-      let errorMessage = 'Registration failed. Please try again.';
-
-      if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message) {
-        errorMessage = error.message;
-      }
-
-      message.error(errorMessage);
-      console.error('Registration error:', error);
+    } catch (validationError) {
+      // Show validation error in modal
+      setErrorDetails({
+        title: 'Form Validation Error',
+        message: 'Please check your input and try again. Make sure all required fields are filled correctly.'
+      });
+      setShowErrorModal(true);
     } finally {
       setLoading(false);
     }
@@ -251,8 +342,14 @@ const Register = () => {
               <Form
                 form={form}
                 layout="vertical"
-                onFinish={handleSubmit}
+                onFinish={(e) => e.preventDefault()}
                 className="space-y-4"
+                onKeyPress={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault();
+                    handleStepAction();
+                  }
+                }}
               >
                 <AnimatePresence mode="wait">
                   <motion.div
@@ -516,6 +613,39 @@ const Register = () => {
           >
             Continue to Login
           </Button>
+        </div>
+      </Modal>
+
+      {/* Error Modal */}
+      <Modal
+        open={showErrorModal}
+        onCancel={() => setShowErrorModal(false)}
+        footer={[
+          <Button
+            key="close"
+            type="primary"
+            onClick={() => setShowErrorModal(false)}
+            className="w-full h-12 rounded-lg bg-blue-600 hover:bg-blue-700 border-0 font-semibold"
+          >
+            Try Again
+          </Button>
+        ]}
+        centered
+        width={400}
+        className="error-modal"
+      >
+        <div className="text-center py-6">
+          <div className="mb-4">
+            <div className="w-16 h-16 bg-red-100 rounded-full flex items-center justify-center mx-auto">
+              <ExclamationCircleOutlined className="text-4xl text-red-500" />
+            </div>
+          </div>
+          <h3 className="text-2xl font-bold text-gray-900 mb-2">
+            {errorDetails.title}
+          </h3>
+          <p className="text-gray-600 mb-6 whitespace-pre-line">
+            {errorDetails.message}
+          </p>
         </div>
       </Modal>
     </div>

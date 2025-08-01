@@ -6,13 +6,13 @@ const API_URL = 'https://capstone-bot.onrender.com/ask';
 
 // Typing indicator component
 const TypingIndicator = () => (
-  <div className="flex items-start space-x-2">
-    <div className="flex-shrink-0 mr-2">
-      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gradient-to-r from-blue-500 to-purple-500">
+  <div className="flex items-start space-x-3">
+    <div className="flex-shrink-0">
+      <div className="w-8 h-8 rounded-full flex items-center justify-center bg-blue-500">
         <MessageSquareMore className="h-5 w-5 text-white" />
       </div>
     </div>
-    <div className="max-w-[70%] rounded-2xl p-4 bg-gray-100">
+    <div className="bg-gray-100 rounded-2xl p-4">
       <div className="flex space-x-2">
         <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
         <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }}></div>
@@ -71,33 +71,40 @@ export function ChatWithAI() {
       setMessages(prev => [...prev, aiMessage]);
     } catch (error) {
       console.error('Error sending message:', error);
-      
+
       let errorContent = 'Sorry, there was an error connecting to the AI service. Please try again.';
-      
+
       if (error.response && error.response.data && error.response.data.error) {
         errorContent = error.response.data.error;
       }
-      
+
       const errorMessage = {
         type: 'error',
         content: errorContent,
         timestamp: new Date().toISOString()
       };
-      
+
       setMessages(prev => [...prev, errorMessage]);
     } finally {
       setLoading(false);
     }
   };
 
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage(e);
+    }
+  };
+
   return (
-    <div className="flex flex-col h-[calc(100vh-16rem)] bg-white rounded-xl">
+    <div className="flex flex-col h-[calc(100vh-8rem)] bg-white rounded-xl shadow-sm">
       {/* Welcome Message */}
       {messages.length === 0 && (
         <div className="flex-1 flex items-center justify-center p-8">
           <div className="text-center space-y-4">
             <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-blue-500 flex items-center justify-center">
                 <MessageSquareMore className="h-8 w-8 text-white" />
               </div>
             </div>
@@ -110,71 +117,69 @@ export function ChatWithAI() {
           </div>
         </div>
       )}
-      
+
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-6">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex items-start space-x-2 ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : 'flex-row'}`}
-          >
-            {/* Avatar */}
-            <div className={`flex-shrink-0 ${message.type === 'user' ? 'ml-2' : 'mr-2'}`}>
-              <div className={`w-8 h-8 rounded-full flex items-center justify-center ${
-                message.type === 'user' 
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500' 
+      <div className="flex-1 overflow-y-auto p-6">
+        <div className="max-w-3xl mx-auto space-y-6">
+          {messages.map((message, index) => (
+            <div
+              key={index}
+              className={`flex items-start space-x-3 ${message.type === 'user' ? 'flex-row-reverse space-x-reverse' : ''}`}
+            >
+              <div className="flex-shrink-0">
+                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${message.type === 'user'
+                  ? 'bg-blue-500'
                   : message.type === 'error'
-                  ? 'bg-red-500'
-                  : 'bg-gradient-to-r from-blue-500 to-purple-500'
-              }`}>
-                {message.type === 'user' ? (
-                  <User className="h-5 w-5 text-white" />
-                ) : (
-                  <MessageSquareMore className="h-5 w-5 text-white" />
-                )}
+                    ? 'bg-red-500'
+                    : 'bg-blue-500'
+                  }`}>
+                  {message.type === 'user' ? (
+                    <User className="h-5 w-5 text-white" />
+                  ) : (
+                    <MessageSquareMore className="h-5 w-5 text-white" />
+                  )}
+                </div>
+              </div>
+
+              <div className={`rounded-2xl p-4 max-w-[80%] ${message.type === 'user'
+                ? 'bg-blue-500 text-white'
+                : message.type === 'error'
+                  ? 'bg-red-50 text-red-600 border border-red-100'
+                  : 'bg-gray-100 text-gray-800'
+                }`}>
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
+                <span className={`text-xs mt-2 block ${message.type === 'user' ? 'text-blue-100' : 'text-gray-500'
+                  }`}>
+                  {new Date(message.timestamp).toLocaleTimeString([], {
+                    hour: '2-digit',
+                    minute: '2-digit'
+                  })}
+                </span>
               </div>
             </div>
-
-            {/* Message Bubble */}
-            <div
-              className={`max-w-[70%] rounded-2xl p-4 ${
-                message.type === 'user'
-                  ? 'bg-gradient-to-r from-blue-500 to-purple-500 text-white'
-                  : message.type === 'error'
-                  ? 'bg-red-100 text-red-700 border border-red-200'
-                  : 'bg-gray-100 text-gray-800'
-              }`}
-            >
-              <p className="text-sm leading-relaxed whitespace-pre-wrap">{message.content}</p>
-              <span className="text-xs opacity-70 mt-2 block">
-                {new Date(message.timestamp).toLocaleTimeString([], { 
-                  hour: '2-digit', 
-                  minute: '2-digit'
-                })}
-              </span>
-            </div>
-          </div>
-        ))}
-        {/* Show typing indicator while loading */}
-        {loading && <TypingIndicator />}
-        <div ref={messagesEndRef} />
+          ))}
+          {/* Show typing indicator while loading */}
+          {loading && <TypingIndicator />}
+          <div ref={messagesEndRef} />
+        </div>
       </div>
 
       {/* Input Form */}
-      <form onSubmit={handleSendMessage} className="p-4 border-t bg-white rounded-b-xl">
-        <div className="flex items-center space-x-3 max-w-4xl mx-auto">
+      <div className="p-4">
+        <div className="max-w-3xl mx-auto relative">
           <input
             type="text"
             value={input}
             onChange={(e) => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
             placeholder="Ask about blockchain, security, or technology..."
-            className="flex-1 px-4 py-3 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200"
+            className="w-full px-4 py-3 rounded-lg border border-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 pr-12"
             disabled={loading}
           />
           <button
-            type="submit"
+            onClick={handleSendMessage}
             disabled={loading || !input.trim()}
-            className="px-4 py-3 bg-gradient-to-r from-blue-500 to-purple-500 text-white rounded-xl hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center min-w-[4rem]"
+            className="absolute right-2 top-1/2 -translate-y-1/2 p-2 text-gray-400 hover:text-blue-500 disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {loading ? (
               <Loader2 className="h-5 w-5 animate-spin" />
@@ -183,7 +188,7 @@ export function ChatWithAI() {
             )}
           </button>
         </div>
-      </form>
+      </div>
     </div>
   );
 } 

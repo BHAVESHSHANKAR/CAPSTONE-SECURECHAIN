@@ -14,7 +14,8 @@ import {
   LogOut,
   Menu as MenuIcon,
   X,
-  Search
+  Search,
+  User
 } from 'lucide-react';
 import StatsCard from '../components/Statscard';
 import { ChatWithAI } from '../components/ChatWithAi';
@@ -98,6 +99,13 @@ function Dashboard() {
     navigate('/login');
   };
 
+  const handleProfileClick = () => {
+    setSelectedMenu('profile');
+    if (isMobile) {
+      setMobileDrawerOpen(false);
+    }
+  };
+
   const Logo = () => (
     <div className="py-6 px-6 flex items-center justify-start">
       <div className="flex items-center gap-3">
@@ -123,7 +131,10 @@ function Dashboard() {
       />
 
       <div className="mt-auto border-t border-gray-100">
-        <div className="p-4 flex items-center gap-3 px-6">
+        <div 
+          className="p-4 flex items-center gap-3 px-6 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
+          onClick={handleProfileClick}
+        >
           <Avatar 
             size={40}
             className="bg-gradient-to-r from-blue-500 to-purple-500 flex-shrink-0"
@@ -195,53 +206,182 @@ function Dashboard() {
       case 'share':
         return (
           <div className="p-6">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
-              <div className="bg-white rounded-xl p-6">
-                <h2 className="text-xl font-semibold mb-6">Share Files Securely</h2>
-                <FileUploadDemo />
-              </div>
+            <div className="bg-white rounded-xl p-6">
+              <h2 className="text-xl font-semibold mb-6">Share Files Securely</h2>
+              <FileUploadDemo />
             </div>
           </div>
         );
       case 'chat':
         return (
-          <div className="p-6">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
-              <ChatWithAI />
-            </div>
+          <div className="h-full">
+            <ChatWithAI />
           </div>
         );
       case 'wallet':
         return (
           <div className="p-6">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
-              <Wallet />
-            </div>
+            <Wallet />
           </div>
         );
       case 'received':
         return (
           <div className="p-6">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
-              <Received />
-            </div>
+            <Received />
           </div>
         );
       case 'history':
         return (
           <div className="p-6">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
-              <History />
-            </div>
+            <History />
           </div>
         );
       case 'check-tx':
         return (
           <div className="p-6">
-            <div className="bg-gradient-to-r from-blue-500 to-purple-500 p-1 rounded-xl">
-              <div className="bg-white rounded-xl p-6">
-                <h2 className="text-xl font-semibold mb-6">Check Transaction Status</h2>
-                <TransactionChecker />
+            <div className="bg-white rounded-xl p-6">
+              <h2 className="text-xl font-semibold mb-6">Check Transaction Status</h2>
+              <TransactionChecker />
+            </div>
+          </div>
+        );
+      case 'profile':
+        return (
+          <div className="p-6">
+            <div className="max-w-4xl mx-auto">
+              {/* Profile Header */}
+              <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-8 mb-6">
+                <div className="flex items-center gap-6">
+                  <Avatar 
+                    size={80}
+                    className="bg-white text-blue-500 border-4 border-white shadow-lg"
+                  >
+                    <span className="text-2xl font-bold">{user.username[0].toUpperCase()}</span>
+                  </Avatar>
+                  <div className="text-white">
+                    <h1 className="text-3xl font-bold mb-2">{user.username}</h1>
+                    <p className="text-blue-100 text-lg">{user.email}</p>
+                    <div className="flex items-center gap-2 mt-2">
+                      <User size={16} />
+                      <span className="text-sm">Member since {new Date(user.createdAt).toLocaleDateString()}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Profile Information Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Account Information */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <User className="text-blue-500" size={20} />
+                    Account Information
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Username</label>
+                      <p className="text-lg font-medium text-gray-900">{user.username}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Email Address</label>
+                      <p className="text-lg font-medium text-gray-900">{user.email}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Account Created</label>
+                      <p className="text-lg font-medium text-gray-900">
+                        {new Date(user.createdAt).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'long',
+                          day: 'numeric'
+                        })}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Wallet Status */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <WalletIcon className="text-purple-500" size={20} />
+                    Wallet Status
+                  </h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Wallet Visibility</label>
+                      <p className="text-lg font-medium text-gray-900">
+                        {user.walletAddressVisible ? (
+                          <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                            Visible
+                          </span>
+                        ) : (
+                          <span className="px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm font-medium">
+                            Hidden
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm font-medium text-gray-500">Wallet Connection</label>
+                      <p className="text-lg font-medium text-gray-900">
+                        <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                          Connected
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Activity Statistics */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Share2 className="text-green-500" size={20} />
+                    Activity Statistics
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Files Shared</span>
+                      <span className="text-2xl font-bold text-green-600">{user.filesShared || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Files Received</span>
+                      <span className="text-2xl font-bold text-blue-600">{user.filesReceived || 0}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Total Activity</span>
+                      <span className="text-2xl font-bold text-purple-600">
+                        {(user.filesShared || 0) + (user.filesReceived || 0)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Security Status */}
+                <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-100">
+                  <h3 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <span className="text-yellow-500">🔒</span>
+                    Security Status
+                  </h3>
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Account Status</span>
+                      <span className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                        Active
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Two-Factor Auth</span>
+                      <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                        OTP Enabled
+                      </span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-gray-600">Device Access</span>
+                      <span className="px-3 py-1 bg-purple-100 text-purple-800 rounded-full text-sm font-medium">
+                        Desktop Only
+                      </span>
+                    </div>
+                  </div>
+                </div>
               </div>
             </div>
           </div>

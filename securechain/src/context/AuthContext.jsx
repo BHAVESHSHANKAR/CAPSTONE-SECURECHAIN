@@ -4,7 +4,7 @@ import axios from 'axios';
 const AuthContext = createContext();
 
 // Default guest user state
-const defaultGuest = {
+export const defaultGuest = {
   username: "Guest User",
   email: null,
   walletAddress: "0x0000000000000000000000000000000000000000",
@@ -78,7 +78,7 @@ export const AuthProvider = ({ children }) => {
     fetchUserProfile,
     logout,
     fetchWalletProfile,
-    isGuest: user.isGuest
+    isGuest: user?.isGuest ?? true // Safely handle null user
   };
 
   return (

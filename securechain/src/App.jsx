@@ -5,6 +5,7 @@ import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import { AuthProvider } from './context/AuthContext';
 import ProtectedRoute from './components/ProtectedRoute';
+import ResponsiveCheck from './components/ResponsiveCheck';
 import { Toaster } from 'react-hot-toast';
 
 function App(){
@@ -35,7 +36,9 @@ function App(){
           path="/dashboard" 
           element={
             <ProtectedRoute>
-              <Dashboard/>
+              <ResponsiveCheck>
+                <Dashboard/>
+              </ResponsiveCheck>
             </ProtectedRoute>
           }
         />
