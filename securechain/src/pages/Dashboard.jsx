@@ -4,12 +4,12 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Lottie from 'lottie-react';
 import BitcoinAnimation from '../assets/animations/crypto  bitcoin.json';
-import { 
-  Share2, 
-  Download, 
-  History as HistoryIcon, 
-  Wallet as WalletIcon, 
-  MessageSquareMore, 
+import {
+  Share2,
+  Download,
+  History as HistoryIcon,
+  Wallet as WalletIcon,
+  MessageSquareMore,
   LayoutDashboard,
   LogOut,
   Menu as MenuIcon,
@@ -131,11 +131,11 @@ function Dashboard() {
       />
 
       <div className="mt-auto border-t border-gray-100">
-        <div 
+        <div
           className="p-4 flex items-center gap-3 px-6 cursor-pointer hover:bg-gray-50 transition-colors duration-200"
           onClick={handleProfileClick}
         >
-          <Avatar 
+          <Avatar
             size={40}
             className="bg-gradient-to-r from-blue-500 to-purple-500 flex-shrink-0"
           >
@@ -171,7 +171,7 @@ function Dashboard() {
       open={mobileDrawerOpen}
       width={280}
       bodyStyle={{ padding: 0 }}
-      headerStyle={{ 
+      headerStyle={{
         borderBottom: '1px solid #f0f0f0',
         padding: '0'
       }}
@@ -187,15 +187,15 @@ function Dashboard() {
   };
 
   const renderContent = () => {
-    switch(selectedMenu) {
+    switch (selectedMenu) {
       case 'dashboard':
         return (
           <div className="p-6">
             <StatsCard />
             <div className="mt-12 flex justify-center">
               <div className="w-64 h-64">
-                <Lottie 
-                  animationData={BitcoinAnimation} 
+                <Lottie
+                  animationData={BitcoinAnimation}
                   loop={true}
                   style={{ width: '100%', height: '100%' }}
                 />
@@ -252,7 +252,7 @@ function Dashboard() {
               {/* Profile Header */}
               <div className="bg-gradient-to-r from-blue-500 to-purple-500 rounded-xl p-8 mb-6">
                 <div className="flex items-center gap-6">
-                  <Avatar 
+                  <Avatar
                     size={80}
                     className="bg-white text-blue-500 border-4 border-white shadow-lg"
                   >
@@ -416,8 +416,8 @@ function Dashboard() {
           />
         )}
 
-        <div 
-          className="h-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-auto"
+        <div
+          className="h-full bg-white rounded-3xl shadow-[0_8px_30px_rgb(0,0,0,0.08)] overflow-auto custom-scrollbar"
         >
           <div className="p-6">
             {renderContent()}

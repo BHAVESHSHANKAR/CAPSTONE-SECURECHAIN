@@ -99,7 +99,7 @@ const Login = () => {
         };
 
         // Make API call to login endpoint
-        const response = await axios.post('http://localhost:5050/api/auth/login', submitData);
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/login`, submitData);
 
         if (response.data) {
           const { token, user } = response.data;

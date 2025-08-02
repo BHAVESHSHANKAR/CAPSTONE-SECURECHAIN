@@ -91,7 +91,7 @@ const Register = () => {
         };
 
         // Make the API call
-        const response = await axios.post('http://localhost:5050/api/auth/register', submitData);
+        const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/auth/register`, submitData);
 
         if (response.data) {
           // Clear loading message
@@ -122,7 +122,7 @@ const Register = () => {
             case 'VALIDATION_ERROR':
               errorTitle = 'Invalid Input';
               errorMessage = serverMessage;
-              
+
               // If there are field-specific validation errors
               if (details) {
                 const errors = Object.entries(details)
@@ -145,7 +145,7 @@ const Register = () => {
             case 'DUPLICATE_ERROR':
               errorTitle = 'Account Already Exists';
               errorMessage = serverMessage;
-              
+
               // Highlight the duplicate field
               if (field) {
                 form.setFields([

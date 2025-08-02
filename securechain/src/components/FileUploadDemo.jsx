@@ -57,7 +57,7 @@ export function FileUploadDemo() {
       formData.append('unlockTime', new Date(unlockTime).toISOString());
 
       const token = localStorage.getItem('token');
-      const response = await axios.post('http://localhost:5050/api/files/upload', formData, {
+      const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/files/upload`, formData, {
         headers: {
           'Content-Type': 'multipart/form-data',
           'Authorization': `Bearer ${token}`
@@ -107,7 +107,7 @@ export function FileUploadDemo() {
 
       // Send email to recipient
       try {
-        await axios.post('http://localhost:5050/api/files/notify', {
+        await axios.post(`${import.meta.env.VITE_API_URL}/api/files/notify`, {
           recipient,
           fileName: selectedFile.name,
           aesKey,
@@ -182,7 +182,7 @@ export function FileUploadDemo() {
     setSearchLoading(true);
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`http://localhost:5050/api/auth/search?query=${value}`, {
+      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/search?query=${value}`, {
         headers: { 'Authorization': `Bearer ${token}` }
       });
 

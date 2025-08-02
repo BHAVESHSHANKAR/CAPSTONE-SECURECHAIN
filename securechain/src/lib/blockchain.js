@@ -2,7 +2,7 @@
 import { ethers } from "ethers";
 
 // ✅ Your deployed contract address
-const CONTRACT_ADDRESS = "0x79Db264F80cE4a6b9b1a9E97f5EF615Ed855EE74";
+const CONTRACT_ADDRESS = import.meta.env.VITE_BLOCKCHAIN_ADDRESS;
 
 // ✅ ABI (for uploadFile)
 const CONTRACT_ABI = [

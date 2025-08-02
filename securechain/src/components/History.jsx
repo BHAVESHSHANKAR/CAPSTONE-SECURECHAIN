@@ -55,7 +55,7 @@ function History() {
                 throw new Error("Authentication token not found");
             }
             const response = await axios.get(
-                `http://localhost:5050/api/files/history/${user.walletAddress}`,
+                `${import.meta.env.VITE_API_URL}/api/files/history/${user.walletAddress}`,
                 {
                     headers: { Authorization: `Bearer ${token}` },
                 }
@@ -110,7 +110,7 @@ function History() {
     };
 
     return (
-        <div className="bg-white rounded-xl shadow-sm">
+        <div className="bg-white rounded-xl shadow-sm card-scrollbar">
             <div className="p-4">
                 <div className="space-y-4 mb-6">
                     <div className="flex items-center justify-between">
@@ -151,11 +151,9 @@ function History() {
                         <Loader2 className="h-8 w-8 animate-spin text-blue-500" />
                     </div>
                 ) : (
-                    <div>
-
-                        
+                    <div className="max-h-96 overflow-y-auto card-scrollbar">
                         {fileHistory.length > 0 ? (
-                            <div className="space-y-4">
+                            <div className="space-y-4 pr-2">
                                 {fileHistory.map((file) => (
                                     <div
                                         key={file.id}

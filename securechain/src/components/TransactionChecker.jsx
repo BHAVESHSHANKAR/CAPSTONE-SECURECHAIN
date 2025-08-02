@@ -45,7 +45,7 @@ export function TransactionChecker() {
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-6 card-scrollbar">
             <div className="flex gap-4">
                 <input
                     type="text"
@@ -74,9 +74,9 @@ export function TransactionChecker() {
             </div>
 
             {txDetails && (
-                <div className="bg-gray-50 rounded-lg p-6 space-y-4">
+                <div className="bg-gray-50 rounded-lg p-6 space-y-4 max-h-96 overflow-y-auto card-scrollbar">
                     <h3 className="text-lg font-semibold text-gray-900">Transaction Details</h3>
-                    <div className="grid gap-4">
+                    <div className="grid gap-4 pr-2">
                         <div className="flex flex-col">
                             <span className="text-sm font-medium text-gray-500">Transaction Hash</span>
                             <div className="flex items-center gap-2">

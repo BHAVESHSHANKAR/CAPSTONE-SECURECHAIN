@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { MessageSquareMore, Send, Loader2, User } from 'lucide-react';
 import axios from 'axios';
 
-const API_URL = 'https://capstone-bot.onrender.com/ask';
+const API_URL = import.meta.env.VITE_CHAT_BOT;
 
 // Typing indicator component
 const TypingIndicator = () => (
@@ -119,8 +119,8 @@ export function ChatWithAI() {
       )}
 
       {/* Chat Messages */}
-      <div className="flex-1 overflow-y-auto p-6">
-        <div className="max-w-3xl mx-auto space-y-6">
+      <div className="flex-1 overflow-y-auto p-6 card-scrollbar">
+        <div className="max-w-3xl mx-auto space-y-6 pr-2">
           {messages.map((message, index) => (
             <div
               key={index}

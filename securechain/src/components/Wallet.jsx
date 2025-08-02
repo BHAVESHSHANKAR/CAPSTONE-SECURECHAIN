@@ -30,7 +30,7 @@ function Wallet() {
                 throw new Error("Authentication token not found");
             }
             const response = await axios.post(
-                "http://localhost:5050/api/auth/generate-otp",
+                `${import.meta.env.VITE_API_URL}/api/auth/generate-otp`,
                 {},
                 {
                     headers: { Authorization: `Bearer ${token}` },
@@ -57,7 +57,7 @@ function Wallet() {
                 throw new Error("Authentication token not found");
             }
             const response = await axios.post(
-                "http://localhost:5050/api/auth/verify-otp",
+                `${import.meta.env.VITE_API_URL}/api/auth/verify-otp`,
                 { otp: otpInput },
                 {
                     headers: { Authorization: `Bearer ${token}` },
@@ -84,7 +84,7 @@ function Wallet() {
                 throw new Error("Authentication token not found");
             }
             const response = await axios.post(
-                "http://localhost:5050/api/auth/hide-wallet",
+                `${import.meta.env.VITE_API_URL}/api/auth/hide-wallet`,
                 {},
                 {
                     headers: { Authorization: `Bearer ${token}` },
