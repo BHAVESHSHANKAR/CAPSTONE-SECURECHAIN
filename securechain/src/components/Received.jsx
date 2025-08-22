@@ -27,6 +27,7 @@ function Received() {
     const [currentFile, setCurrentFile] = useState(null);
     const [keyModalVisible, setKeyModalVisible] = useState(false);
     const [decryptionKey, setDecryptionKey] = useState('');
+    const [privateKey, setPrivateKey] = useState('');
     const [verifyingKey, setVerifyingKey] = useState(false);
     const [verifiedFiles, setVerifiedFiles] = useState(new Map());
     const [downloadingFileId, setDownloadingFileId] = useState(null);
@@ -134,9 +135,11 @@ function Received() {
                 newMap.set(currentFile.id, {
                     verified: true,
                     key: decryptionKey.trim(),
+                    privateKey: privateKey.trim(),
                     unlockTime: new Date(currentFile.unlockTime),
                     fileName: currentFile.fileName,
                     recipient: currentFile.recipient,
+                    encryptionAlgorithm: currentFile.encryptionAlgorithm || 'AES'
                 });
                 return newMap;
             });
@@ -144,6 +147,7 @@ function Received() {
             message.success("Key verified successfully!");
             setKeyModalVisible(false);
             setDecryptionKey("");
+            setPrivateKey("");
         } catch (error) {
             let errorMessage = "Failed to verify key";
 
@@ -253,9 +257,17 @@ function Received() {
                 return;
             }
 
+            const verifiedData = verifiedFiles.get(file.id);
+            const requestBody = { aesKey: verifiedKey };
+            
+            // Add private key for RSA decryption
+            if (verifiedData?.encryptionAlgorithm === 'RSA' && verifiedData?.privateKey) {
+                requestBody.privateKey = verifiedData.privateKey;
+            }
+
             const response = await axios.post(
                 `${import.meta.env.VITE_API_URL}/api/files/download/${file.id}`,
-                { aesKey: verifiedKey },
+                requestBody,
                 {
                     headers: {
                         Authorization: `Bearer ${token}`,
@@ -430,6 +442,10 @@ function Received() {
                                                     <Clock className="h-3.5 w-3.5 mr-1" />
                                                     {dayjs(file.createdAt).format('hh:mm A')}
                                                 </span>
+                                                <span className="hidden sm:inline">•</span>
+                                                <span className="text-blue-600 font-medium">
+                                                    {file.encryptionAlgorithm || 'AES'}
+                                                </span>
                                             </div>
                                         </div>
                                         <div className="flex items-center space-x-2">
@@ -531,25 +547,143 @@ function Received() {
             </div>
 
             <Modal
-                title="Enter Decryption Key"
+                title={
+                    <div className="flex items-center space-x-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${
+                            currentFile?.encryptionAlgorithm === 'AES' ? 'bg-green-500' :
+                            currentFile?.encryptionAlgorithm === 'DES' ? 'bg-orange-500' :
+                            'bg-blue-500'
+                        }`}>
+                            <Check className="h-4 w-4 text-white" />
+                        </div>
+                        <span>
+                            {currentFile?.encryptionAlgorithm === 'AES' && 'Enter AES-256 Decryption Key'}
+                            {currentFile?.encryptionAlgorithm === 'DES' && 'Enter 3DES Decryption Key'}
+                            {currentFile?.encryptionAlgorithm === 'RSA' && 'Enter RSA Hybrid Decryption Keys'}
+                            {!currentFile?.encryptionAlgorithm && 'Enter Decryption Key'}
+                        </span>
+                    </div>
+                }
                 open={keyModalVisible}
                 onOk={handleKeySubmit}
                 onCancel={() => {
                     setKeyModalVisible(false);
                     setDecryptionKey("");
+                    setPrivateKey("");
                 }}
-                okText="Verify"
+                okText="Verify & Unlock"
                 cancelText="Cancel"
                 confirmLoading={verifyingKey}
+                width={currentFile?.encryptionAlgorithm === 'RSA' ? 700 : 500}
             >
                 <div className="mt-4">
-                    <input
-                        type="text"
-                        value={decryptionKey}
-                        onChange={(e) => setDecryptionKey(e.target.value)}
-                        placeholder="Enter the decryption key"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    />
+                    {/* AES Algorithm */}
+                    {currentFile?.encryptionAlgorithm === 'AES' && (
+                        <div className="bg-green-50 p-4 rounded-lg border border-green-200 mb-4">
+                            <div className="flex items-center mb-2">
+                                <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center mr-2">
+                                    <Check className="h-4 w-4 text-white" />
+                                </div>
+                                <h4 className="font-semibold text-green-800">AES-256 Encrypted File</h4>
+                            </div>
+                            <p className="text-sm text-green-700">
+                                This file was encrypted using Advanced Encryption Standard (AES-256). 
+                                Enter the encryption key provided by the sender to decrypt and download.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* DES Algorithm */}
+                    {currentFile?.encryptionAlgorithm === 'DES' && (
+                        <div className="bg-orange-50 p-4 rounded-lg border border-orange-200 mb-4">
+                            <div className="flex items-center mb-2">
+                                <div className="w-6 h-6 bg-orange-500 rounded-full flex items-center justify-center mr-2">
+                                    <Check className="h-4 w-4 text-white" />
+                                </div>
+                                <h4 className="font-semibold text-orange-800">3DES Encrypted File</h4>
+                            </div>
+                            <p className="text-sm text-orange-700">
+                                This file was encrypted using Triple Data Encryption Standard (3DES). 
+                                Enter the encryption key provided by the sender to decrypt and download.
+                            </p>
+                        </div>
+                    )}
+
+                    {/* RSA Algorithm */}
+                    {currentFile?.encryptionAlgorithm === 'RSA' && (
+                        <div className="bg-blue-50 p-4 rounded-lg border border-blue-200 mb-4">
+                            <div className="flex items-center mb-2">
+                                <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center mr-2">
+                                    <Check className="h-4 w-4 text-white" />
+                                </div>
+                                <h4 className="font-semibold text-blue-800">RSA Hybrid Encrypted File</h4>
+                            </div>
+                            <p className="text-sm text-blue-700">
+                                This file was encrypted using RSA + AES hybrid encryption for maximum security. 
+                                You need both the encryption key and RSA private key to decrypt.
+                            </p>
+                        </div>
+                    )}
+
+                    <div className="space-y-4">
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                🔑 Encryption Key
+                            </label>
+                            <input
+                                type="text"
+                                value={decryptionKey}
+                                onChange={(e) => setDecryptionKey(e.target.value)}
+                                placeholder={`Enter the ${currentFile?.encryptionAlgorithm || 'encryption'} key from the sender`}
+                                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                            />
+                        </div>
+                        
+                        {currentFile?.encryptionAlgorithm === 'RSA' && (
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-2">
+                                    🔐 RSA Private Key
+                                </label>
+                                <textarea
+                                    value={privateKey}
+                                    onChange={(e) => setPrivateKey(e.target.value)}
+                                    placeholder="-----BEGIN PRIVATE KEY-----
+MIIEvQIBADANBgkqhkiG9w0BAQEFAASCBKcwggSjAgEAAoIBAQC...
+-----END PRIVATE KEY-----"
+                                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 h-32 font-mono text-sm"
+                                />
+                                <div className="mt-2 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                                    <p className="text-xs text-blue-700">
+                                        <strong>RSA Hybrid Decryption:</strong> This file uses RSA + AES encryption. 
+                                        Both keys are required and should have been provided by the sender via email or secure channel.
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {/* Algorithm-specific help text */}
+                        <div className="text-xs text-gray-500 space-y-1">
+                            {currentFile?.encryptionAlgorithm === 'AES' && (
+                                <>
+                                    <p>💡 AES keys are typically 64 characters long (hexadecimal)</p>
+                                    <p>📧 Check your email for the key sent by the sender</p>
+                                </>
+                            )}
+                            {currentFile?.encryptionAlgorithm === 'DES' && (
+                                <>
+                                    <p>💡 3DES keys are typically 48 characters long (hexadecimal)</p>
+                                    <p>📧 Check your email for the key sent by the sender</p>
+                                </>
+                            )}
+                            {currentFile?.encryptionAlgorithm === 'RSA' && (
+                                <>
+                                    <p>💡 You need both the encryption key AND the RSA private key</p>
+                                    <p>📧 Both keys should have been sent to you via email</p>
+                                    <p>🔒 RSA private keys start with "-----BEGIN PRIVATE KEY-----"</p>
+                                </>
+                            )}
+                        </div>
+                    </div>
                 </div>
             </Modal>
         </div>

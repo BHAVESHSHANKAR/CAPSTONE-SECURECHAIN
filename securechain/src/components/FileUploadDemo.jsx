@@ -6,7 +6,7 @@ import { Check, Copy, Loader2, Upload, X, Search } from "lucide-react";
 import axios from 'axios';
 import crypto from 'crypto-js';
 import { useAuth } from "../context/AuthContext";
-import { Modal, Spin } from "antd";
+import { Modal, Spin, message } from "antd";
 import debounce from 'lodash/debounce';
 import { ethers } from "ethers";
 
@@ -28,12 +28,17 @@ export function FileUploadDemo() {
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [searchLoading, setSearchLoading] = useState(false);
+  const [encryptionAlgorithm, setEncryptionAlgorithm] = useState('AES');
 
   const handleFileChange = useCallback((files) => {
     if (files && files.length > 0) {
       setSelectedFile(files[0]);
     }
   }, []);
+
+  const handleAlgorithmChange = (algorithm) => {
+    setEncryptionAlgorithm(algorithm);
+  };
 
   const handleUpload = async () => {
     if (!selectedFile || !recipient || !unlockTime) {
@@ -42,19 +47,34 @@ export function FileUploadDemo() {
       return;
     }
 
+
+
     try {
       setUploading(true);
       setUploadProgress(0);
 
-      // Generate random AES key
-      const aesKey = crypto.lib.WordArray.random(32).toString();
-      const aesKeyHash = crypto.SHA256(aesKey).toString();
+      // Generate encryption key based on algorithm
+      let encryptionKey, keyHash;
+      
+      switch (encryptionAlgorithm) {
+        case 'AES':
+          encryptionKey = crypto.lib.WordArray.random(32).toString();
+          keyHash = crypto.SHA256(encryptionKey).toString();
+          break;
+        case 'DES':
+          encryptionKey = crypto.lib.WordArray.random(24).toString(); // 3DES uses 24 bytes
+          keyHash = crypto.SHA256(encryptionKey).toString();
+          break;
+        default:
+          throw new Error('Unsupported encryption algorithm');
+      }
 
       const formData = new FormData();
       formData.append('file', selectedFile);
       formData.append('recipient', recipient);
-      formData.append('aesKeyHash', aesKeyHash);
+      formData.append('keyHash', keyHash);
       formData.append('unlockTime', new Date(unlockTime).toISOString());
+      formData.append('encryptionAlgorithm', encryptionAlgorithm);
 
       const token = localStorage.getItem('token');
       const response = await axios.post(`${import.meta.env.VITE_API_URL}/api/files/upload`, formData, {
@@ -68,8 +88,8 @@ export function FileUploadDemo() {
         }
       });
 
-      // Store AES key (but don't show modal yet)
-      setAesKey(aesKey);
+      // Store encryption key (but don't show modal yet)
+      setAesKey(encryptionKey);
 
       // Record on Blockchain
       const fileUrl = response.data.file.fileUrl;
@@ -110,7 +130,8 @@ export function FileUploadDemo() {
         await axios.post(`${import.meta.env.VITE_API_URL}/api/files/notify`, {
           recipient,
           fileName: selectedFile.name,
-          aesKey,
+          aesKey: encryptionKey,
+          encryptionAlgorithm,
           txHash: blockchainResult.txHash,
           unlockTime: new Date(unlockTime).toLocaleString(),
           sender: user.username || user.email
@@ -120,24 +141,15 @@ export function FileUploadDemo() {
           }
         });
 
-        // Show modals in sequence
-        setShowKeyModal(true);
-
-        // Reset form after successful upload and notification
-        resetForm();
+        // Don't reset form immediately - let user see the modals first
       } catch (error) {
         console.error('Failed to send email notification:', error);
         
-        // Show AES key modal first
-        setShowKeyModal(true);
-        
         // Show email error after a delay
         setTimeout(() => {
-          setErrorMessage("The file was shared successfully on the blockchain, but we couldn't send the email notification. Please share the decryption key and transaction hash with the recipient manually.");
+          setErrorMessage(`The file was shared successfully on the blockchain, but we couldn't send the email notification. Please share the decryption key and transaction hash (${blockchainResult.txHash}) with the recipient manually.`);
           setErrorModalVisible(true);
         }, 1000);
-        
-        resetForm();
       }
 
     } catch (error) {
@@ -169,6 +181,7 @@ export function FileUploadDemo() {
     setUploadProgress(0);
     setSearchQuery('');
     setSearchResults([]);
+    setEncryptionAlgorithm('AES');
   };
 
   // Handle user search
@@ -290,6 +303,25 @@ export function FileUploadDemo() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Encryption Algorithm
+              </label>
+              <select
+                value={encryptionAlgorithm}
+                onChange={(e) => handleAlgorithmChange(e.target.value)}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                disabled={uploading}
+              >
+                <option value="AES">AES-256 (Recommended)</option>
+                <option value="DES">3DES (Legacy)</option>
+              </select>
+              <p className="text-xs text-gray-500 mt-1">
+                {encryptionAlgorithm === 'AES' && 'Advanced Encryption Standard - Fast and secure'}
+                {encryptionAlgorithm === 'DES' && 'Triple Data Encryption Standard - Slower but compatible'}
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Unlock Time
               </label>
               <input
@@ -343,18 +375,23 @@ export function FileUploadDemo() {
         )}
       </button>
 
-      {/* AES Key Modal */}
+
+
+      {/* Algorithm-Specific Encryption Key Modal */}
       <Modal
         title={
-          <div className="flex items-center space-x-2 text-green-600">
+          <div className={`flex items-center space-x-2 ${encryptionAlgorithm === 'AES' ? 'text-green-600' : 'text-orange-600'}`}>
             <Check className="h-5 w-5" />
-            <span>Encryption Key</span>
+            <span>
+              {encryptionAlgorithm === 'AES' && 'AES-256 Encryption Key'}
+              {encryptionAlgorithm === 'DES' && '3DES Encryption Key'}
+            </span>
           </div>
         }
         open={showKeyModal}
         onCancel={() => {
           setShowKeyModal(false);
-          // Show transaction hash modal after AES key modal is closed
+          // Show transaction hash modal after key modal is closed
           setTimeout(() => {
             setShowTxModal(true);
           }, 300);
@@ -364,30 +401,76 @@ export function FileUploadDemo() {
         closable={true}
       >
         <div className="mt-4">
-          <div className="bg-yellow-50 p-4 rounded-lg border border-yellow-200">
-            <p className="text-red-500 text-sm mb-4">
-              ⚠️ Save this encryption key! You'll need it to decrypt the file.
-            </p>
-            <div className="bg-white p-3 rounded border border-yellow-300 flex items-center space-x-2">
-              <code className="flex-1 font-mono text-sm break-all">{aesKey}</code>
-              <button
-                onClick={handleCopyKey}
-                className="p-2 hover:bg-yellow-100 rounded-md transition-colors"
-                title="Copy to clipboard"
-              >
-                {keyCopied ? (
-                  <Check className="h-5 w-5 text-green-500" />
-                ) : (
-                  <Copy className="h-5 w-5 text-yellow-600" />
-                )}
-              </button>
+          {/* AES Algorithm */}
+          {encryptionAlgorithm === 'AES' && (
+            <div className="bg-green-50 p-4 rounded-lg border border-green-200">
+              <div className="flex items-center mb-3">
+                <div className="w-8 h-8 bg-green-500 rounded-full flex items-center justify-center mr-3">
+                  <Check className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-green-800">AES-256 Encryption Complete</h4>
+                  <p className="text-sm text-green-600">Fast, secure, and widely supported</p>
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded border border-green-300 flex items-center space-x-2">
+                <code className="flex-1 font-mono text-sm break-all">{aesKey}</code>
+                <button
+                  onClick={handleCopyKey}
+                  className="p-2 hover:bg-green-100 rounded-md transition-colors"
+                  title="Copy to clipboard"
+                >
+                  {keyCopied ? (
+                    <Check className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Copy className="h-5 w-5 text-green-600" />
+                  )}
+                </button>
+              </div>
+              <div className="mt-3 text-sm text-green-700">
+                <p>✅ Your file is encrypted with military-grade AES-256 encryption</p>
+                <p>🔑 Share this key securely with the recipient</p>
+                <p>⚠️ This key will not be shown again - save it now!</p>
+              </div>
             </div>
-            <div className="mt-2 text-sm text-yellow-700">
-              <p>• Share this key securely with the recipient</p>
-              <p>• The key will not be shown again</p>
-              <p>• Keep it safe until the file is decrypted</p>
+          )}
+
+          {/* DES Algorithm */}
+          {encryptionAlgorithm === 'DES' && (
+            <div className="bg-orange-50 p-4 rounded-lg border border-orange-200">
+              <div className="flex items-center mb-3">
+                <div className="w-8 h-8 bg-orange-500 rounded-full flex items-center justify-center mr-3">
+                  <Check className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h4 className="font-semibold text-orange-800">3DES Encryption Complete</h4>
+                  <p className="text-sm text-orange-600">Legacy encryption for compatibility</p>
+                </div>
+              </div>
+              <div className="bg-white p-3 rounded border border-orange-300 flex items-center space-x-2">
+                <code className="flex-1 font-mono text-sm break-all">{aesKey}</code>
+                <button
+                  onClick={handleCopyKey}
+                  className="p-2 hover:bg-orange-100 rounded-md transition-colors"
+                  title="Copy to clipboard"
+                >
+                  {keyCopied ? (
+                    <Check className="h-5 w-5 text-green-500" />
+                  ) : (
+                    <Copy className="h-5 w-5 text-orange-600" />
+                  )}
+                </button>
+              </div>
+              <div className="mt-3 text-sm text-orange-700">
+                <p>🔒 Your file is encrypted with Triple DES (3DES)</p>
+                <p>🔑 Share this key securely with the recipient</p>
+                <p>⚠️ This key will not be shown again - save it now!</p>
+                <p>💡 Consider using AES for better performance in future uploads</p>
+              </div>
             </div>
-          </div>
+          )}
+
+
         </div>
       </Modal>
 
@@ -400,8 +483,14 @@ export function FileUploadDemo() {
           </div>
         }
         open={showTxModal}
-        onOk={() => setShowTxModal(false)}
-        onCancel={() => setShowTxModal(false)}
+        onOk={() => {
+          setShowTxModal(false);
+          resetForm();
+        }}
+        onCancel={() => {
+          setShowTxModal(false);
+          resetForm();
+        }}
         okText="Close"
         width={500}
       >
